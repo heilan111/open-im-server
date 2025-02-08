@@ -1,0 +1,49 @@
+name: build docker image
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag version to be used for Docker image"
+        required: true
+        default: "v3.8.0"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: main-repo
+
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@v3.3.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3.8.0
+
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./main-repo
+          load: true
+          tags: "openim/openim-server:local"
+          cache-from: type=gha,scope=build
+          cache-to: type=gha,mode=max,scope=build
+
+      - name: Save Docker image to file
+        run: |
+          docker save -o openim-server.tar openim/openim-server:local
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact
+          path: openim-server.tar
+
+      
